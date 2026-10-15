@@ -76,6 +76,10 @@ services:
       DB_PASSWORD: ${CHAIN_WATCHER_DB_PASSWORD:?required}
       DB_MIGRATOR_USERNAME: cryptopayment_chain_watcher_migrator
       DB_MIGRATOR_PASSWORD: ${CHAIN_WATCHER_MIGRATOR_DB_PASSWORD:?required}
+      # The chain to follow, and the nodes to follow it through (comma separated, tried in order). Left empty
+      # the chain is simply not followed, which is what a deployment without an RPC provider should do.
+      CHAIN_ID: ${CHAIN_ID:-ethereum-sepolia}
+      CHAIN_RPC_URLS: ${CHAIN_RPC_URLS:-}
     depends_on:
       postgres: { condition: service_healthy }
     healthcheck:

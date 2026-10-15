@@ -53,6 +53,17 @@ Create a **Compose** service:
 
   Database passwords are applied only when the PostgreSQL volume is first initialised.
 
+  The chain-watcher also takes the chain it follows and the nodes to reach it through:
+
+  ```
+  CHAIN_ID=ethereum-sepolia
+  CHAIN_RPC_URLS=https://<provider>/<key>,https://<second provider>/<key>
+  ```
+
+  Endpoints are tried in the order given, so a second provider is a fallback rather than a round robin. With
+  `CHAIN_RPC_URLS` empty the service starts and follows nothing, which is the right state before an RPC
+  provider is chosen.
+
 ### 4. Domains (Dokploy → Domains, HTTPS with Let's Encrypt)
 
 | Service | Host | Path | Port |
