@@ -10,7 +10,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * The application starts, which now includes running its migrations as the migrator role and connecting as the
  * runtime role.
  */
-@SpringBootTest
+// Following a chain is tested against a real node elsewhere; here only the wiring is checked.
+@SpringBootTest(properties = "cryptopayment.watcher.scheduled=false")
 class ChainWatcherApplicationTests {
 
     @DynamicPropertySource

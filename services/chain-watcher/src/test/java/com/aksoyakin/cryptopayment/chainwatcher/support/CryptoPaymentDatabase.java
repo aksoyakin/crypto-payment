@@ -26,8 +26,11 @@ public final class CryptoPaymentDatabase {
     private static final String RUNTIME = "cryptopayment_chain_watcher";
     private static final String HISTORY_SCHEMA = "chain_watcher_migrations";
 
+    private static final String API_MIGRATOR = "cryptopayment_api_migrator";
+
     private static final PostgreSQLContainer POSTGRES = started();
     private static boolean migrated;
+    private static boolean apiMigrated;
 
     private CryptoPaymentDatabase() {
     }
@@ -63,6 +66,31 @@ public final class CryptoPaymentDatabase {
                 .load()
                 .migrate();
         migrated = true;
+    }
+
+    /**
+     * Runs the api's migrations too, from its source folder, because what the watcher reads is defined there:
+     * the views over its deposit addresses and its assets. Copying their definitions into this module would
+     * mean testing against a schema that drifts from the one the api actually creates.
+     */
+    public static synchronized void migrateApiSchemas() {
+        if (apiMigrated) {
+            return;
+        }
+        Path migrations = Path.of("..", "api", "src", "main", "resources", "db", "migration")
+                .toAbsolutePath()
+                .normalize();
+        if (!Files.isDirectory(migrations)) {
+            throw new IllegalStateException("the api's migrations are not where they were expected: " + migrations);
+        }
+        Flyway.configure()
+                .dataSource(url(), API_MIGRATOR, API_MIGRATOR)
+                .schemas("api_migrations")
+                .createSchemas(false)
+                .locations("filesystem:" + migrations)
+                .load()
+                .migrate();
+        apiMigrated = true;
     }
 
     @SuppressWarnings("resource") // the container lives as long as the JVM running the tests
