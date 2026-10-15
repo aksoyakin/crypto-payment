@@ -1,6 +1,6 @@
 # 0001. Three services, split by trust and failure profile; a modular monolith inside
 
-- Status: Accepted
+- Status: Accepted, amended by 0020
 - Date: 2026-10-15
 
 ## Context

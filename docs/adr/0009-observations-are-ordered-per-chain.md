@@ -1,6 +1,6 @@
 # 0009. Observations are ordered per chain
 
-- Status: Accepted
+- Status: Accepted, amended by 0015
 - Date: 2026-10-15
 - Amends: 0003
 

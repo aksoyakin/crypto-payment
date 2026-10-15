@@ -1,6 +1,6 @@
 # 0008. A double-entry ledger, enforced by the database
 
-- Status: Accepted
+- Status: Accepted, amended by 0013
 - Date: 2026-10-15
 
 ## Context

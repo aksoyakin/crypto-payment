@@ -77,7 +77,31 @@ CI redeploys through the Dokploy API after the images are pushed. Add three repo
 Keep Dokploy's *Autodeploy* off: a push would otherwise deploy before CI has built the new images. Without the
 secrets, CI still publishes images and skips the deploy step.
 
+## Backups
+
+The ledger is the only record of which share of the pooled funds belongs to whom, so the database is backed up
+off the server ([ADR 0018](adr/0018-backups.md)):
+
+1. Dokploy → Settings → S3 Destinations: add an S3-compatible bucket outside the VPS.
+2. The compose service's `postgres` → Backups: daily, database `cryptopayment`, keep 30 days.
+3. Restore the first backup into a scratch database and check that it opens. Repeat after any change to the
+   backup configuration; a backup that has never been restored is not yet a backup.
+
+Encryption keys ([ADR 0017](adr/0017-encrypting-application-secrets.md)) are kept outside the server as well, and
+apart from the database backups.
+
 ## Upgrading a database that already exists
 
 `infra/postgres/init/01-roles-and-schemas.sh` only runs when the PostgreSQL volume is created. A role or schema
-added to it later has to be created by hand once on an existing database.
+added to it later has to be created by hand once on an existing database. Since the first deployment, the
+`audit` schema was added and the `fees` schema was dropped (fee schedules live in `payments`):
+
+```sql
+CREATE SCHEMA audit AUTHORIZATION cryptopayment_api_migrator;
+GRANT USAGE ON SCHEMA audit TO cryptopayment_api;
+ALTER DEFAULT PRIVILEGES FOR ROLE cryptopayment_api_migrator IN SCHEMA audit
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO cryptopayment_api;
+ALTER DEFAULT PRIVILEGES FOR ROLE cryptopayment_api_migrator IN SCHEMA audit
+    GRANT USAGE, SELECT ON SEQUENCES TO cryptopayment_api;
+DROP SCHEMA fees;
+```

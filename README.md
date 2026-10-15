@@ -10,15 +10,16 @@ checkout, signed webhooks, a double-entry ledger and scheduled payouts.
 
 | Component | Responsibility |
 |---|---|
-| `services/api` | Modular monolith: identity, merchants, payments, ledger, fees, treasury, settlement, webhooks |
+| `services/api` | Modular monolith: merchants, payments, ledger, treasury and webhooks today; identity, settlement and audit as they are built |
 | `services/chain-watcher` | Follows each supported chain, detects transfers to deposit addresses, handles reorganisations |
-| `services/signer` | Holds the private keys and signs transactions after checking its own policy; unreachable from outside |
+| `services/signer` | Holds the hot wallet's key and signs transactions after checking its own policy; unreachable from outside |
 | `libs/event-contracts` | Versioned messages exchanged between services |
 | `web` | Next.js: marketing site, documentation, merchant dashboard, admin panel, hosted checkout |
 | `infra` | Docker Compose for local development: PostgreSQL and a local EVM chain (Anvil) |
 | `docs` | Architecture Decision Records and diagrams |
 
-Design decisions: see [docs/adr](docs/adr/README.md). Deployment: see [docs/deployment.md](docs/deployment.md).
+Design decisions: see [docs/adr](docs/adr/README.md). Threat model: see [docs/threat-model.md](docs/threat-model.md).
+Deployment: see [docs/deployment.md](docs/deployment.md).
 
 ## Tech stack
 

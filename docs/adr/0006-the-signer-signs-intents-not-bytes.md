@@ -1,6 +1,6 @@
 # 0006. The signer signs intents, not bytes, and keeps its own journal
 
-- Status: Accepted
+- Status: Accepted, amended by 0014
 - Date: 2026-10-15
 
 ## Context

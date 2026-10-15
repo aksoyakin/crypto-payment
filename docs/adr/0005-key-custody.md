@@ -1,6 +1,6 @@
 # 0005. Key custody
 
-- Status: Accepted
+- Status: Accepted, amended by 0014
 - Date: 2026-10-15
 
 ## Context

@@ -1,6 +1,6 @@
 # 0002. A custodial model with tiered wallets and a ledger as the source of truth
 
-- Status: Accepted
+- Status: Accepted, amended by 0014
 - Date: 2026-10-15
 
 ## Context
