@@ -1,0 +1,41 @@
+name: cryptopayment
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: cryptopayment
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      API_MIGRATOR_DB_PASSWORD: ${API_MIGRATOR_DB_PASSWORD:-api_migrator}
+      API_DB_PASSWORD: ${API_DB_PASSWORD:-api}
+      CHAIN_WATCHER_MIGRATOR_DB_PASSWORD: ${CHAIN_WATCHER_MIGRATOR_DB_PASSWORD:-chain_watcher_migrator}
+      CHAIN_WATCHER_DB_PASSWORD: ${CHAIN_WATCHER_DB_PASSWORD:-chain_watcher}
+      SIGNER_MIGRATOR_DB_PASSWORD: ${SIGNER_MIGRATOR_DB_PASSWORD:-signer_migrator}
+      SIGNER_DB_PASSWORD: ${SIGNER_DB_PASSWORD:-signer}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cryptopayment"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # A local EVM chain. It mines a block every two seconds so that the watcher has something to follow even
+  # when nobody is sending transactions. Its default accounts come from a public mnemonic: local use only.
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.8.4
+    command: ["anvil --host 0.0.0.0 --port 8545 --chain-id 31337 --block-time 2"]
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
