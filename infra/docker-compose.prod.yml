@@ -87,6 +87,14 @@ services:
     networks: [internal, public]
     depends_on:
       api: { condition: service_healthy }
+    healthcheck:
+      # The image is Alpine without curl; wget is busybox's. Next.js has no health endpoint of its own, so
+      # the landing page is what answers. The address is literal: busybox resolves 'localhost' to ::1 first,
+      # and the server listens on IPv4 only.
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
 networks:
   internal:
