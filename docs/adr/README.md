@@ -24,3 +24,4 @@
 | [0019](0019-account-security-and-an-audit-log.md) | Account security and an audit log | Accepted |
 | [0020](0020-modules-are-opened-with-their-first-code.md) | Modules are opened with their first code | Accepted |
 | [0021](0021-a-pure-domain-and-hand-written-mappers.md) | A pure domain, and mappers written by hand | Accepted |
+| [0022](0022-the-evm-client-is-web3j-for-crypto-and-our-own-transport.md) | web3j for signing and ABI, a JSON-RPC transport of our own | Accepted |

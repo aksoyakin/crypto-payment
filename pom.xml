@@ -33,6 +33,8 @@
         <lombok.version>1.18.48</lombok.version>
         <spring-modulith.version>2.1.1</spring-modulith.version>
         <archunit.version>1.5.1</archunit.version>
+        <web3j.version>4.14.0</web3j.version>
+        <tuweni.version>2.7.0</tuweni.version>
     </properties>
 
     <dependencyManagement>
@@ -59,6 +61,74 @@
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit-junit5</artifactId>
                 <version>${archunit.version}</version>
+            </dependency>
+            <!-- web3j for what is hard to get right by hand: secp256k1, RLP and ABI encoding. Its 'core'
+                 artifact is not used; the JSON-RPC transport is ours (ADR 0022). -->
+            <dependency>
+                <groupId>org.web3j</groupId>
+                <artifactId>crypto</artifactId>
+                <version>${web3j.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.consensys.tuweni</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <!-- Only web3j's keystore files need Jackson 2, and key storage here is AES-GCM of our
+                         own (ADR 0017). Boot's Jackson 3 stays the only JSON library in the image. -->
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.web3j</groupId>
+                <artifactId>abi</artifactId>
+                <version>${web3j.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.consensys.tuweni</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <!-- Only web3j's keystore files need Jackson 2, and key storage here is AES-GCM of our
+                         own (ADR 0017). Boot's Jackson 3 stays the only JSON library in the image. -->
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <!-- Pulled back in without its optional adapters: tuweni's Bytes is on web3j's API, but its
+                 Vert.x buffer and ConnId bridges would drag Netty and Vert.x into a payment service. -->
+            <dependency>
+                <groupId>io.consensys.tuweni</groupId>
+                <artifactId>tuweni-bytes</artifactId>
+                <version>${tuweni.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.vertx</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.connid</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.consensys.tuweni</groupId>
+                <artifactId>tuweni-units</artifactId>
+                <version>${tuweni.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.vertx</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.connid</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
