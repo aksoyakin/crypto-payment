@@ -3,6 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+    # Documentation never reaches an image (.dockerignore keeps **/*.md and docs out of every build context),
+    # so a change to it has nothing to build, test or deploy.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   pull_request:
 
 permissions:
@@ -39,3 +44,131 @@ jobs:
       - run: pnpm check
       - run: pnpm --filter @cryptopayment/web typecheck
       - run: pnpm --filter @cryptopayment/web build
+
+  # Which images a push changes, and whether the server has to hear about it at all. A Spring Boot jar is not
+  # reproducible byte for byte, so rebuilding a service that did not change ships a new digest for identical
+  # code, and a new digest is what makes Compose restart the container.
+  changes:
+    name: What changed
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.decide.outputs.matrix }}
+      any: ${{ steps.decide.outputs.any }}
+      deploy: ${{ steps.decide.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The comparison below needs the commit this push started from.
+          fetch-depth: 0
+      - id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            printf 'Changed files:\n%s\n' "$(printf '%s\n' "$changed" | sed 's/^/  /')"
+          else
+            # A new branch, a force push, a rewritten history: the starting point is not in the clone, so
+            # build everything. Wrong in this direction costs CI minutes; wrong in the other ships a stale image.
+            changed=""
+            echo "Cannot tell what this push changed; rebuilding every image."
+          fi
+
+          # An empty list means "not known", so every pattern has to match it.
+          touched() { [ -z "$changed" ] || printf '%s\n' "$changed" | grep -qE "$1"; }
+
+          # Shared by all service images: the parent pom pins every version, the wrapper builds them,
+          # event-contracts is the one module they all depend on, and the Dockerfile and the ignore file shape
+          # every build context. No service depends on another, so a service's own sources belong to it alone.
+          java_shared='^(pom\.xml$|mvnw$|\.mvn/|libs/|infra/docker/service\.Dockerfile$|\.dockerignore$)'
+          web='^(web/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|infra/docker/web\.Dockerfile$|\.dockerignore$)'
+          # Read by Dokploy at deploy time rather than by a build: a change here has to reach the server even
+          # though no image moved.
+          infra='^infra/(docker-compose\.prod\.yml$|postgres/)'
+
+          include='[]'
+          for service in api chain-watcher signer; do
+            if touched "$java_shared" || touched "^services/$service/"; then
+              include=$(jq -cn --argjson i "$include" --arg s "$service" \
+                '$i + [{name: $s, dockerfile: "infra/docker/service.Dockerfile", service: $s}]')
+            fi
+          done
+          if touched "$web"; then
+            include=$(jq -cn --argjson i "$include" \
+              '$i + [{name: "web", dockerfile: "infra/docker/web.Dockerfile", service: ""}]')
+          fi
+
+          any=false
+          [ "$include" != '[]' ] && any=true
+          deploy=false
+          { [ "$any" = true ] || touched "$infra"; } && deploy=true
+
+          {
+            echo "matrix={\"include\":$include}"
+            echo "any=$any"
+            echo "deploy=$deploy"
+          } >> "$GITHUB_OUTPUT"
+          echo "Images to build: $include"
+          echo "Deploy: $deploy"
+
+  images:
+    name: Image (${{ matrix.name }})
+    needs: [backend, frontend, changes]
+    if: needs.changes.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          build-args: SERVICE=${{ matrix.service }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: Deploy (Dokploy)
+    needs: [backend, frontend, changes, images]
+    # A skipped build (only a deploy-time file changed) must still deploy; a failed one must not. The test jobs
+    # are named explicitly because a skipped test must never look like a passing one.
+    if: >-
+      !cancelled()
+      && needs.backend.result == 'success'
+      && needs.frontend.result == 'success'
+      && (needs.images.result == 'success' || needs.images.result == 'skipped')
+      && needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy deployment
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+        run: |
+          if [ -z "$DOKPLOY_URL" ] || [ -z "$DOKPLOY_API_KEY" ] || [ -z "$DOKPLOY_COMPOSE_ID" ]; then
+            echo "Dokploy secrets are not configured; skipping deployment."
+            exit 0
+          fi
+          curl -fsS -X POST "${DOKPLOY_URL%/}/api/compose.deploy" \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"composeId\": \"$DOKPLOY_COMPOSE_ID\"}"

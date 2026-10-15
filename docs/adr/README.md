@@ -14,3 +14,4 @@
 | [0009](0009-observations-are-ordered-per-chain.md) | Observations are ordered per chain | Accepted |
 | [0010](0010-test-mode-without-a-chain.md) | Test mode without a chain | Accepted |
 | [0011](0011-no-redis.md) | No Redis | Accepted |
+| [0012](0012-build-and-deployment.md) | Build and deployment | Accepted |

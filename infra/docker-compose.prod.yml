@@ -1,0 +1,99 @@
+# Production stack, deployed by Dokploy (Docker Compose from this repository).
+# Images are built and pushed to GHCR by CI. Only web and the api's public surface are routed by Traefik;
+# chain-watcher, signer and PostgreSQL are reachable on the internal network only (ADR 0001, ADR 0007).
+#
+# Required environment (Dokploy → Environment):
+#   IMAGE_PREFIX   e.g. ghcr.io/<owner>/crypto-payment
+#   IMAGE_TAG      e.g. latest or a commit sha
+#   POSTGRES_PASSWORD
+#   API_MIGRATOR_DB_PASSWORD, API_DB_PASSWORD
+#   CHAIN_WATCHER_MIGRATOR_DB_PASSWORD, CHAIN_WATCHER_DB_PASSWORD
+#   SIGNER_MIGRATOR_DB_PASSWORD, SIGNER_DB_PASSWORD
+
+name: cryptopayment
+
+x-java-service: &java-service
+  restart: unless-stopped
+  pull_policy: always # a moving tag like 'latest' must be re-pulled on every deploy
+  networks: [internal]
+  environment: &java-env
+    JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cryptopayment
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      API_MIGRATOR_DB_PASSWORD: ${API_MIGRATOR_DB_PASSWORD:?required}
+      API_DB_PASSWORD: ${API_DB_PASSWORD:?required}
+      CHAIN_WATCHER_MIGRATOR_DB_PASSWORD: ${CHAIN_WATCHER_MIGRATOR_DB_PASSWORD:?required}
+      CHAIN_WATCHER_DB_PASSWORD: ${CHAIN_WATCHER_DB_PASSWORD:?required}
+      SIGNER_MIGRATOR_DB_PASSWORD: ${SIGNER_MIGRATOR_DB_PASSWORD:?required}
+      SIGNER_DB_PASSWORD: ${SIGNER_DB_PASSWORD:?required}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cryptopayment"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *java-service
+    image: ${IMAGE_PREFIX:?required}-api:${IMAGE_TAG:-latest}
+    # Public: only /v1 is routed to it (Dokploy → Domains). /internal is reached by web over this network.
+    networks: [internal, public]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      # Management runs on its own port, which no route points at.
+      test: ["CMD", "curl", "-fsS", "http://localhost:9080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  chain-watcher:
+    <<: *java-service
+    image: ${IMAGE_PREFIX:?required}-chain-watcher:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9081/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  # Holds the keys. Never attached to the public network and never routed.
+  signer:
+    <<: *java-service
+    image: ${IMAGE_PREFIX:?required}-signer:${IMAGE_TAG:-latest}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9082/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  web:
+    image: ${IMAGE_PREFIX:?required}-web:${IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8080
+    networks: [internal, public]
+    depends_on:
+      api: { condition: service_healthy }
+
+networks:
+  internal:
+  # Traefik's network, managed by Dokploy.
+  public:
+    external: true
+    name: ${TRAEFIK_NETWORK:-dokploy-network}
+
+volumes:
+  postgres-data:

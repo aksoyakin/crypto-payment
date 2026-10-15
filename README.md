@@ -18,7 +18,7 @@ checkout, signed webhooks, a double-entry ledger and scheduled payouts.
 | `infra` | Docker Compose for local development: PostgreSQL and a local EVM chain (Anvil) |
 | `docs` | Architecture Decision Records and diagrams |
 
-Design decisions: see [docs/adr](docs/adr/README.md).
+Design decisions: see [docs/adr](docs/adr/README.md). Deployment: see [docs/deployment.md](docs/deployment.md).
 
 ## Tech stack
 
