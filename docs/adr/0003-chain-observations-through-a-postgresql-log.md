@@ -1,6 +1,6 @@
 # 0003. Chain observations reach the api through a PostgreSQL log, not a message broker
 
-- Status: Accepted
+- Status: Accepted, amended by 0009
 - Date: 2026-10-15
 
 ## Context
