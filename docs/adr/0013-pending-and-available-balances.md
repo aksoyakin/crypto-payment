@@ -19,8 +19,8 @@ money?". Card processors answer them at different times for the same reason.
   balance and fee revenue.
 - When the block is `finalized`, the amount moves from pending to **available** in a second transaction.
 - Only the available balance can be paid out.
-- A reorganisation before finality reverses the pending entries and turns the payment back to `processing`
-  (or `failed` if the transfer is gone for good); the merchant is notified by webhook.
+- A reorganisation before finality reverses the pending entries and turns the payment back to
+  `requires_payment`, or to `expired` if its deadline has passed; the merchant is notified by webhook.
 
 ## Consequences
 - The available balance can never be undermined by a reorganisation, so the non-negative constraint holds.
