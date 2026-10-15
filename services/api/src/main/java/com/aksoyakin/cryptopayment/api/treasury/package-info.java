@@ -1,4 +1,5 @@
 /**
- * Treasury bounded context: platform wallets, deposit address derivation, sweeps, nonces and broadcasting signed transactions.
+ * Treasury bounded context: platform wallets, forwarder deposit addresses, flushes, nonces and broadcasting signed
+ * transactions.
  */
 package com.aksoyakin.cryptopayment.api.treasury;

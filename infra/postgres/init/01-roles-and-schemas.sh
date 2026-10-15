@@ -41,7 +41,7 @@ SQL
 }
 
 owns cryptopayment_api_migrator cryptopayment_api \
-    identity merchant payments ledger fees treasury settlement webhooks
+    identity merchant payments ledger treasury settlement webhooks audit
 owns cryptopayment_chain_watcher_migrator cryptopayment_chain_watcher chain
 owns cryptopayment_signer_migrator cryptopayment_signer signer
 
