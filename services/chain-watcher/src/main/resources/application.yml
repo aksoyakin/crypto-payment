@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: chain-watcher
+
+server:
+  port: 8081
+
+# Actuator listens on a port of its own, so that it is never routed to the outside world.
+management:
+  server:
+    port: 9081
+  endpoints:
+    web:
+      exposure:
+        include: health,info

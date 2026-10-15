@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: api
+
+server:
+  port: 8080
+
+# Actuator listens on a port of its own, so that it is never routed to the outside world.
+management:
+  server:
+    port: 9080
+  endpoints:
+    web:
+      exposure:
+        include: health,info
