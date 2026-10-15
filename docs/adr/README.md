@@ -23,3 +23,4 @@
 | [0018](0018-backups.md) | Backups | Accepted |
 | [0019](0019-account-security-and-an-audit-log.md) | Account security and an audit log | Accepted |
 | [0020](0020-modules-are-opened-with-their-first-code.md) | Modules are opened with their first code | Accepted |
+| [0021](0021-a-pure-domain-and-hand-written-mappers.md) | A pure domain, and mappers written by hand | Accepted |
