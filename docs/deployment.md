@@ -94,7 +94,8 @@ apart from the database backups.
 
 `infra/postgres/init/01-roles-and-schemas.sh` only runs when the PostgreSQL volume is created. A role or schema
 added to it later has to be created by hand once on an existing database. Since the first deployment, the
-`audit` schema was added and the `fees` schema was dropped (fee schedules live in `payments`):
+`audit` schema was added, the `fees` schema was dropped (fee schedules live in `payments`), and each service
+got a schema for Flyway's history table:
 
 ```sql
 CREATE SCHEMA audit AUTHORIZATION cryptopayment_api_migrator;
@@ -104,4 +105,15 @@ ALTER DEFAULT PRIVILEGES FOR ROLE cryptopayment_api_migrator IN SCHEMA audit
 ALTER DEFAULT PRIVILEGES FOR ROLE cryptopayment_api_migrator IN SCHEMA audit
     GRANT USAGE, SELECT ON SEQUENCES TO cryptopayment_api;
 DROP SCHEMA fees;
+
+-- Flyway's bookkeeping, kept out of the domain schemas. The runtime roles are granted nothing here.
+CREATE SCHEMA api_migrations           AUTHORIZATION cryptopayment_api_migrator;
+CREATE SCHEMA chain_watcher_migrations AUTHORIZATION cryptopayment_chain_watcher_migrator;
+CREATE SCHEMA signer_migrations        AUTHORIZATION cryptopayment_signer_migrator;
 ```
+
+## Migrations
+
+Each service runs its own migrations on startup, as its **migrator** role, and then serves traffic as its
+**runtime** role, which owns nothing. A deployment therefore needs no migration step of its own; a service whose
+migration fails does not pass its health check, and Dokploy keeps the previous container serving.

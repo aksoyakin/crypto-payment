@@ -48,6 +48,15 @@ services:
     image: ${IMAGE_PREFIX:?required}-api:${IMAGE_TAG:-latest}
     # Public: only /v1 is routed to it (Dokploy → Domains). /internal is reached by web over this network.
     networks: [internal, public]
+    environment:
+      <<: *java-env
+      # Two roles: migrations run as the owner of the schemas, the application as a role that owns nothing,
+      # which is what makes the ledger's append-only privileges mean something (ADR 0008).
+      DB_URL: jdbc:postgresql://postgres:5432/cryptopayment
+      DB_USERNAME: cryptopayment_api
+      DB_PASSWORD: ${API_DB_PASSWORD:?required}
+      DB_MIGRATOR_USERNAME: cryptopayment_api_migrator
+      DB_MIGRATOR_PASSWORD: ${API_MIGRATOR_DB_PASSWORD:?required}
     depends_on:
       postgres: { condition: service_healthy }
     healthcheck:
@@ -60,6 +69,13 @@ services:
   chain-watcher:
     <<: *java-service
     image: ${IMAGE_PREFIX:?required}-chain-watcher:${IMAGE_TAG:-latest}
+    environment:
+      <<: *java-env
+      DB_URL: jdbc:postgresql://postgres:5432/cryptopayment
+      DB_USERNAME: cryptopayment_chain_watcher
+      DB_PASSWORD: ${CHAIN_WATCHER_DB_PASSWORD:?required}
+      DB_MIGRATOR_USERNAME: cryptopayment_chain_watcher_migrator
+      DB_MIGRATOR_PASSWORD: ${CHAIN_WATCHER_MIGRATOR_DB_PASSWORD:?required}
     depends_on:
       postgres: { condition: service_healthy }
     healthcheck:

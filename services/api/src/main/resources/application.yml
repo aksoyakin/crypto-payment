@@ -2,6 +2,21 @@ spring:
   application:
     name: api
 
+  # The application connects as the runtime role, which owns nothing: that is what makes the ledger's
+  # "never updated, never deleted" privilege hold (ADR 0008).
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cryptopayment}
+    username: ${DB_USERNAME:cryptopayment_api}
+    password: ${DB_PASSWORD:api}
+
+  # Migrations run as the migrator role, which owns the schemas. Its history table lives in a schema of its own.
+  flyway:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cryptopayment}
+    user: ${DB_MIGRATOR_USERNAME:cryptopayment_api_migrator}
+    password: ${DB_MIGRATOR_PASSWORD:api_migrator}
+    schemas: api_migrations
+    create-schemas: false
+
 server:
   port: 8080
 

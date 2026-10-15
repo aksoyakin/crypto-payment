@@ -45,6 +45,15 @@ owns cryptopayment_api_migrator cryptopayment_api \
 owns cryptopayment_chain_watcher_migrator cryptopayment_chain_watcher chain
 owns cryptopayment_signer_migrator cryptopayment_signer signer
 
+# Flyway's own bookkeeping, one schema per service and owned by its migrator. Kept out of the domain schemas:
+# the history table belongs to the deployment, not to the ledger or the observation log. The runtime roles are
+# granted nothing here; they never read it.
+for service in api chain_watcher signer; do
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
+CREATE SCHEMA ${service}_migrations AUTHORIZATION cryptopayment_${service}_migrator;
+SQL
+done
+
 # The two services read each other only through views; SELECT on a view is granted by the owning service's
 # migration. The signer's schema is not readable by anyone else.
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
