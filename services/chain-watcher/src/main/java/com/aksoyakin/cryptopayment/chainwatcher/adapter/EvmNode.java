@@ -134,6 +134,7 @@ public final class EvmNode {
                 Hex.toBigInteger(receipt.blockNumber()),
                 receipt.blockHash(),
                 Hex.toBigInteger(receipt.gasUsed()),
+                receipt.contractAddress() == null ? null : receipt.contractAddress().toLowerCase(),
                 // "0x1" is success. Pre-Byzantium blocks have no status field; no supported chain is that old.
                 BigInteger.ONE.equals(Hex.toBigInteger(receipt.status())));
     }
@@ -157,6 +158,7 @@ public final class EvmNode {
             String blockNumber,
             String blockHash,
             String gasUsed,
+            String contractAddress,
             String status) {
     }
 }
