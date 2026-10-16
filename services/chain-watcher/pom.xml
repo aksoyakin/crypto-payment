@@ -48,9 +48,12 @@
             <groupId>io.consensys.tuweni</groupId>
             <artifactId>tuweni-units</artifactId>
         </dependency>
+        <!-- The starter carries Boot's Flyway auto-configuration (and spring-boot-starter-jdbc with it) but
+             not Flyway itself, so flyway-core and its PostgreSQL module stay explicit. Without the starter
+             there is no auto-configuration at all in Boot 4, and migrations silently never run. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

@@ -1,17 +1,34 @@
 package com.aksoyakin.cryptopayment.api;
 
+import javax.sql.DataSource;
+
 import com.aksoyakin.cryptopayment.api.support.CryptoPaymentDatabase;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
- * The application starts, which now includes running its migrations as the migrator role and connecting as the
- * runtime role: the two-role setup is part of what has to work for the service to come up.
+ * The application starts, and starting it brings its own schema with it: migrations run as the migrator role,
+ * the application then connects as a role that owns nothing.
+ * <p>
+ * Spring Boot 4 splits auto-configuration into modules, so Flyway on the classpath is not enough for Boot to
+ * run it. Without {@code spring-boot-starter-flyway} the service starts happily and no migration ever runs, so
+ * these assertions are what stands between that and a deployment with no tables in it.
  */
 @SpringBootTest
 class ApiApplicationTests {
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired(required = false)
+    private Flyway flyway;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry properties) {
@@ -25,5 +42,16 @@ class ApiApplicationTests {
 
     @Test
     void contextLoads() {
+        assertThat(dataSource).isNotNull();
+    }
+
+    @Test
+    void bringsItsSchemaWithIt() {
+        assertThat(flyway).as("Boot has to be the one running the migrations").isNotNull();
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
+
+        JdbcClient db = JdbcClient.create(dataSource);
+        assertThat(db.sql("SELECT count(*) FROM ledger.entries").query(Long.class).single()).isNotNull();
+        assertThat(db.sql("SELECT count(*) FROM treasury.watcher_addresses").query(Long.class).single()).isNotNull();
     }
 }
