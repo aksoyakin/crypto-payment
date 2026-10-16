@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory;
  * decides who writes rather than deployment discipline, and because the lock belongs to a session, a watcher
  * that crashes frees its chain without anyone intervening.
  * <p>
+ * The lock lives on one connection for as long as the chain is followed, so a lease permanently holds one
+ * connection of the pool. The pool has to be sized with that in mind.
+ * <p>
  * Not thread-safe: one lease belongs to one follower.
  */
 public final class ChainWriteLease implements AutoCloseable {

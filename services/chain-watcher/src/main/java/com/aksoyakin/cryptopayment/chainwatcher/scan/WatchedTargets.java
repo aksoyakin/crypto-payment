@@ -19,11 +19,17 @@ public final class WatchedTargets {
         this.db = db;
     }
 
-    /** Lower case, because that is the one form addresses are stored and compared in. */
+    /**
+     * Lower case, because that is the one form addresses are stored and compared in.
+     * <p>
+     * Read into a list and then mapped: a {@code JdbcClient} stream is lazy and holds its connection until the
+     * stream is closed, which is a connection leaked per call for anything that does not close it.
+     */
     public Set<String> addressesOn(String chain) {
         return db.sql("SELECT address FROM treasury.watcher_addresses WHERE chain = ?")
                 .param(chain)
                 .query(String.class)
+                .list()
                 .stream()
                 .map(String::toLowerCase)
                 .collect(Collectors.toUnmodifiableSet());
