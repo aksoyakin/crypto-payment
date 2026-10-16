@@ -6,6 +6,13 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/cryptopayment}
     username: ${DB_USERNAME:cryptopayment_chain_watcher}
     password: ${DB_PASSWORD:chain_watcher}
+    hikari:
+      # One connection is held for as long as a chain is followed, for its advisory lock; the rest serve one
+      # cycle at a time and the health check. Ten was the default and said nothing about what this service does.
+      maximum-pool-size: 4
+      # Milliseconds. Short on purpose: waiting half a minute for a connection turns a pool problem into a
+      # health check that times out, which is how it was found the hard way.
+      connection-timeout: 5000
 
   flyway:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/cryptopayment}
